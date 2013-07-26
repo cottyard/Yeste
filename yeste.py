@@ -6,7 +6,7 @@ class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.1',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.1.1',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
         
@@ -76,17 +76,22 @@ class MainFrame(wx.Frame):
         self.showEntries()
 
         print "initialization finished"
-        
+
+    # API: called by notepad.py
     def updateNote(self, name, content):
         if name == '':
             return
         if name.lower().startswith('dir:'):
-            self.noteManager.newDir(name[4:].lstrip())
+            if content.strip() == '':
+                content = ''
+            self.noteManager.newDir(name[4:].lstrip(), content)
         else:
             self.noteManager.newNote(name, content)
             
         self.showEntries()
-        
+    # end of API
+
+    
     def showEntries(self, filterString = ''):
         lst = list(self.noteManager.getDirIter()) +\
               list(self.noteManager.getNoteIter())
@@ -96,25 +101,44 @@ class MainFrame(wx.Frame):
 
         self.dirIndicator.SetLabel(\
             reduce(lambda p,q: p+'/'+q ,self.noteManager.getPath()))
-        
+
+    def verifyPassword(self, entryName):
+        dlg = wx.TextEntryDialog(None, "Enter password: ", 'Access','')
+        if dlg.ShowModal() != wx.ID_OK:
+            return False
+        pw = dlg.GetValue()
+        dlg.Destroy()
+        if not self.noteManager.matchPassword(entryName, pw):
+            dlg = wx.MessageDialog(None, "Incorrect password.",
+                                   style = wx.OK)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return False
+        return True
+
     # callback methods
     def OnNew(self, event):
         notepad.NotePad(parent = self, title = 'New Note')
 
     def OnDel(self, event):
         entryName = self.listBox.GetStringSelection()
-        if entryName != '':
-            result = wx.ID_YES
-            if not self.noteManager.isNote(entryName):
-                dlg = wx.MessageDialog(None,\
-                                       'Delete directory ' + entryName + '?',
-                                       'Confirm', wx.YES_NO | wx.ICON_QUESTION)
-                result = dlg.ShowModal()
-                dlg.Destroy()
+        if entryName == '':
+            return
+        # if entry is a directory, confirm deletion
+        if not self.noteManager.isNote(entryName):
+            dlg = wx.MessageDialog(None,\
+                                   'Delete directory ' + entryName + '?',
+                                   'Confirm', wx.YES_NO | wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result != wx.ID_YES:
+                return
+            # if entry is encrypted, request access
+            if not self.verifyPassword(entryName):
+                return
                 
-            if result == wx.ID_YES:
-                self.noteManager.delEntry(entryName)
-                self.showEntries()
+        self.noteManager.delEntry(entryName)
+        self.showEntries()
 
     def OnSearch(self, event):
         search = self.searchBox.GetValue()
@@ -129,6 +153,9 @@ class MainFrame(wx.Frame):
                             content = mng.getNoteContent(entryName))
             self.noteManager.delEntry(entryName)
         else:
+            if mng.isEncrypted(entryName):
+                if not self.verifyPassword(entryName):
+                    return
             mng.enterDir(entryName)
             
         self.showEntries()
@@ -142,15 +169,19 @@ class MainFrame(wx.Frame):
         if self.noteManager.isNote(entryName):
             self.previewText.SetValue(self.noteManager.getNoteContent(entryName))
         else:
-            self.previewText.SetValue(\
-                reduce(lambda p,q: p+'\n- '+q,\
-                       self.noteManager.getDirEntries(entryName),\
-                       '<directory>'))
+            if self.noteManager.isEncrypted(entryName):
+                value = '<encrypted directory>'
+            else:
+                value = reduce(lambda p,q: p+'\n- '+q,\
+                               self.noteManager.getDirEntries(entryName),\
+                               '<directory>')
+
+            self.previewText.SetValue(value)
                 
     def OnExit(self, event):
         self.noteManager.save()
         event.Skip()
-        
+    # end of callback methods
 
 if __name__ == '__main__':
     app = wx.PySimpleApp()

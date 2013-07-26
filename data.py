@@ -35,7 +35,13 @@ class NoteManager:
         
     def isNote(self, name):
         return self.pwd.getChild(name).type == Entry.TYPE_NOTE
-        
+
+    def isEncrypted(self, name):
+        return self.pwd.getChild(name).getPassword() != ''
+
+    def matchPassword(self, name, password):
+        return self.pwd.getChild(name).getPassword() == password
+    
     # Setting Methods
     def enterDir(self, name):
         dir = self.pwd.getChild(name)
@@ -54,8 +60,8 @@ class NoteManager:
     def newNote(self, name, content):
         self.pwd.addChild(name, Note(name, content))
 
-    def newDir(self, name):
-        self.pwd.addChild(name, Dir(name))
+    def newDir(self, name, password = ''):
+        self.pwd.addChild(name, Dir(name, password))
 
     # File Methods
     def load(self):
@@ -99,9 +105,10 @@ class Note(Entry):
         return self.content
 
 class Dir(Entry):
-    def __init__(self, name):
+    def __init__(self, name, password = ''):
         super(Dir, self).__init__(Entry.TYPE_DIR, name)
         self.children = dict()
+        self.password = password
 
     def addChild(self, name, child):
         self.children[name] = child
@@ -111,6 +118,9 @@ class Dir(Entry):
 
     def getChild(self, name):
         return self.children[name]
+
+    def getPassword(self):
+        return self.password
         
     def childrenIter(self, filt = None):
         return filter(filt, self.children)
