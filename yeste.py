@@ -3,8 +3,10 @@ import data
 import notepad
 
 class MainFrame(wx.Frame):
+    BUTTON_WIDTH = 30
+    BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.0',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.1',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
         
@@ -12,11 +14,20 @@ class MainFrame(wx.Frame):
         self.panel = wx.Panel(self)
 
         # tool bar
-        self.newButton = wx.Button(self.panel, label = 'New')
+        self.newButton = wx.Button(self.panel, label = 'New', \
+                                   size = (MainFrame.BUTTON_WIDTH,
+                                           MainFrame.BUTTON_HEIGHT))
         self.Bind(wx.EVT_BUTTON, self.OnNew, self.newButton)
 
-        self.delButton = wx.Button(self.panel, label = 'Del')
+        self.delButton = wx.Button(self.panel, label = 'Del', \
+                                   size = (MainFrame.BUTTON_WIDTH,
+                                           MainFrame.BUTTON_HEIGHT))
         self.Bind(wx.EVT_BUTTON, self.OnDel, self.delButton)
+        
+        self.levelUpButton = wx.Button(self.panel, label = 'Up', \
+                                       size = (MainFrame.BUTTON_WIDTH,
+                                               MainFrame.BUTTON_HEIGHT))
+        self.Bind(wx.EVT_BUTTON, self.OnLevelUp, self.levelUpButton)
 
         searchLabel = wx.StaticText(self.panel, label = 'search:',
                                     style = wx.ALIGN_RIGHT)
@@ -24,18 +35,19 @@ class MainFrame(wx.Frame):
         self.searchBox = wx.TextCtrl(self.panel)
         self.Bind(wx.EVT_TEXT, self.OnSearch, self.searchBox)
         
-        hbox = wx.FlexGridSizer(0, 5, 0, 0)
+        hbox = wx.FlexGridSizer(0, 6, 0, 0)
         hbox.AddMany([(self.newButton, 0, wx.EXPAND),
                       (self.delButton, 0, wx.EXPAND),
+                      (self.levelUpButton, 0, wx.EXPAND),
                       ((50,1), 0, wx.EXPAND),
                       (searchLabel, 0, wx.EXPAND),
                       (self.searchBox, 0, wx.EXPAND)])
-        hbox.AddGrowableCol(4,1)
+        hbox.AddGrowableCol(5,1)
         # end of tool bar
 
         # list
         self.listBox = wx.ListBox(self.panel, style = wx.LB_SINGLE)
-        self.listBox.Bind(wx.EVT_LISTBOX_DCLICK, self.OnOpenNote)
+        self.listBox.Bind(wx.EVT_LISTBOX_DCLICK, self.OnOpen)
         self.listBox.Bind(wx.EVT_LISTBOX, self.OnSelect)
         # end of list
 
@@ -43,62 +55,98 @@ class MainFrame(wx.Frame):
         self.previewText = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE |
                                        wx.TE_READONLY)
 
+        # directory indicator
+        self.dirIndicator = wx.StaticText(self.panel)
+
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(hbox, flag = wx.EXPAND)
         vbox.Add(self.listBox, proportion = 2, flag = wx.EXPAND)
         vbox.Add(self.previewText, proportion = 1, flag = wx.EXPAND)
+        vbox.Add(self.dirIndicator, flag = wx.EXPAND)
         
         self.panel.SetSizer(vbox)
         
         self.Show()
+        
         # end of GUI
 
         # data management
         self.noteManager = data.NoteManager()
         self.Bind(wx.EVT_CLOSE, self.OnExit)
-        self.showNoteList()
+        self.showEntries()
 
         print "initialization finished"
         
-    def updateNote(self, tab, content):
-        if tab == '':
+    def updateNote(self, name, content):
+        if name == '':
             return
-        # update data
-        self.noteManager.newNote(tab, content)
-        # update list
-        self.showNoteList()
+        if name.lower().startswith('dir:'):
+            self.noteManager.newDir(name[4:].lstrip())
+        else:
+            self.noteManager.newNote(name, content)
+            
+        self.showEntries()
         
-    def showNoteList(self):
-        self.listBox.Clear()
-        self.listBox.Set(list(self.noteManager.getTabIter()))
+    def showEntries(self, filterString = ''):
+        lst = list(self.noteManager.getDirIter()) +\
+              list(self.noteManager.getNoteIter())
+              
+        lst = filter(lambda x: filterString in x, lst)
+        self.listBox.Set(lst)
+
+        self.dirIndicator.SetLabel(\
+            reduce(lambda p,q: p+'/'+q ,self.noteManager.getPath()))
         
     # callback methods
     def OnNew(self, event):
         notepad.NotePad(parent = self, title = 'New Note')
 
     def OnDel(self, event):
-        tabString = self.listBox.GetStringSelection()
-        if tabString != '':
-            self.noteManager.delNote(tabString)
-            self.showNoteList()
+        entryName = self.listBox.GetStringSelection()
+        if entryName != '':
+            result = wx.ID_YES
+            if not self.noteManager.isNote(entryName):
+                dlg = wx.MessageDialog(None,\
+                                       'Delete directory ' + entryName + '?',
+                                       'Confirm', wx.YES_NO | wx.ICON_QUESTION)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                
+            if result == wx.ID_YES:
+                self.noteManager.delEntry(entryName)
+                self.showEntries()
 
     def OnSearch(self, event):
         search = self.searchBox.GetValue()
-        tabs = self.noteManager.getTabIter()
-        self.listBox.Clear()
-        self.listBox.Set([x for x in tabs if search in x])
+        self.showEntries(search)
 
-    def OnOpenNote(self, event):
-        tabString = event.GetString()
-        notepad.NotePad(parent = self, title = tabString,
-                        tab = tabString,
-                        content = self.noteManager.getContent(tabString))
-        self.noteManager.delNote(tabString)
+    def OnOpen(self, event):
+        mng = self.noteManager
+        entryName = event.GetString()
+        if mng.isNote(entryName):
+            notepad.NotePad(parent = self, title = entryName,
+                            tab = entryName,
+                            content = mng.getNoteContent(entryName))
+            self.noteManager.delEntry(entryName)
+        else:
+            mng.enterDir(entryName)
+            
+        self.showEntries()
 
+    def OnLevelUp(self, event):
+        self.noteManager.exitDir()
+        self.showEntries()
+        
     def OnSelect(self, event):
-        tabString = event.GetString()
-        self.previewText.SetValue(self.noteManager.getContent(tabString))
-
+        entryName = event.GetString()
+        if self.noteManager.isNote(entryName):
+            self.previewText.SetValue(self.noteManager.getNoteContent(entryName))
+        else:
+            self.previewText.SetValue(\
+                reduce(lambda p,q: p+'\n- '+q,\
+                       self.noteManager.getDirEntries(entryName),\
+                       '<directory>'))
+                
     def OnExit(self, event):
         self.noteManager.save()
         event.Skip()
