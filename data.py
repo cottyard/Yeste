@@ -37,10 +37,15 @@ class NoteManager:
         return self.pwd.getChild(name).type == Entry.TYPE_NOTE
 
     def isEncrypted(self, name):
+        if self.pwd.getChild(name).type == Entry.TYPE_NOTE:
+            return False
         return self.pwd.getChild(name).getPassword() != ''
 
     def matchPassword(self, name, password):
         return self.pwd.getChild(name).getPassword() == password
+
+    def retrieveEntry(self, name):
+        return self.pwd.getChild(name)
     
     # Setting Methods
     def enterDir(self, name):
@@ -56,6 +61,9 @@ class NoteManager:
             
     def delEntry(self, name):
         self.pwd.delChild(name)
+
+    def newEntry(self, entry):
+        self.pwd.addChild(entry.name, entry)
         
     def newNote(self, name, content):
         self.pwd.addChild(name, Note(name, content))
@@ -87,7 +95,7 @@ class NoteManager:
         with open("note.dat",'wb') as f:
             pickle.dump(self.rootDir, f)
             
-# File System Classes
+# Data Classes
 
 class Entry(object):
     TYPE_NOTE = 0
