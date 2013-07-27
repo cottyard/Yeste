@@ -55,10 +55,14 @@ class MainFrame(wx.Frame):
         for i, text in enumerate("Cut Copy Paste".split()):
             item = self.popupMenu.Append(menuID[i], text)
             self.Bind(wx.EVT_MENU, self.OnPopupItemSelected, item)
+            if text == 'Paste':
+                self.pasteButton = item
+        
         self.listBox.Bind(wx.EVT_CONTEXT_MENU, self.OnContextMenu)
         # end of popup menu
-
+        
         self.pasteBoard = []
+        self.pasteButton.Enable(False)
         # end of list
 
         # preview text area
@@ -139,12 +143,17 @@ class MainFrame(wx.Frame):
         for eName in selectedEntries:
             self.pasteBoard.append(
                 self.noteManager.retrieveEntry(eName))
+            
+        if len(selectedEntries) > 0:
+            self.pasteButton.Enable(True)
+            
         return selectedEntries
 
     def pasteEntries(self):
         for entry in self.pasteBoard:
             self.noteManager.newEntry(entry)
         self.pasteBoard = []
+        self.pasteButton.Enable(False)
         self.showEntries()
         
     # end of auxiliary methods
