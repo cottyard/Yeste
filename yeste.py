@@ -9,7 +9,7 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, parent, id, 'Yeste 1.1.1',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
-        
+
         # panel
         self.panel = wx.Panel(self)
 
@@ -46,9 +46,19 @@ class MainFrame(wx.Frame):
         # end of tool bar
 
         # list
-        self.listBox = wx.ListBox(self.panel, style = wx.LB_SINGLE)
+        self.listBox = wx.ListBox(self.panel, style = wx.LB_EXTENDED)
         self.listBox.Bind(wx.EVT_LISTBOX_DCLICK, self.OnOpen)
         self.listBox.Bind(wx.EVT_LISTBOX, self.OnSelect)
+        # popup menu
+        self.popupMenu = wx.Menu()
+        menuID = [wx.ID_CUT, wx.ID_COPY, wx.ID_PASTE]
+        for i, text in enumerate("Cut Copy Paste".split()):
+            item = self.popupMenu.Append(menuID[i], text)
+            self.Bind(wx.EVT_MENU, self.OnPopupItemSelected, item)
+        self.listBox.Bind(wx.EVT_CONTEXT_MENU, self.OnContextMenu)
+        # end of popup menu
+
+        self.pasteBoard = []
         # end of list
 
         # preview text area
@@ -91,7 +101,8 @@ class MainFrame(wx.Frame):
         self.showEntries()
     # end of API
 
-    
+
+    # auxiliary methods
     def showEntries(self, filterString = ''):
         lst = list(self.noteManager.getDirIter()) +\
               list(self.noteManager.getNoteIter())
@@ -103,7 +114,8 @@ class MainFrame(wx.Frame):
             reduce(lambda p,q: p+'/'+q ,self.noteManager.getPath()))
 
     def verifyPassword(self, entryName):
-        dlg = wx.TextEntryDialog(None, "Enter password: ", 'Access','')
+        dlg = wx.TextEntryDialog(None, "Enter password: ",
+                                 'Access ' + entryName, '')
         if dlg.ShowModal() != wx.ID_OK:
             return False
         pw = dlg.GetValue()
@@ -116,28 +128,61 @@ class MainFrame(wx.Frame):
             return False
         return True
 
+    def cutEntries(self):
+        for eName in self.copyEntries():
+            self.noteManager.delEntry(eName)
+        self.showEntries()
+            
+    def copyEntries(self):
+        selectedEntries = map(self.listBox.GetString,
+                              self.listBox.GetSelections())
+        for eName in selectedEntries:
+            self.pasteBoard.append(
+                self.noteManager.retrieveEntry(eName))
+        return selectedEntries
+
+    def pasteEntries(self):
+        for entry in self.pasteBoard:
+            self.noteManager.newEntry(entry)
+        self.pasteBoard = []
+        self.showEntries()
+        
+    # end of auxiliary methods
+
+    
     # callback methods
     def OnNew(self, event):
         notepad.NotePad(parent = self, title = 'New Note')
 
     def OnDel(self, event):
-        entryName = self.listBox.GetStringSelection()
-        if entryName == '':
+        entryNames = map(self.listBox.GetString,
+                        self.listBox.GetSelections())
+        if entryNames == []:
             return
-        # if entry is a directory, confirm deletion
-        if not self.noteManager.isNote(entryName):
-            dlg = wx.MessageDialog(None,\
-                                   'Delete directory ' + entryName + '?',
-                                   'Confirm', wx.YES_NO | wx.ICON_QUESTION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result != wx.ID_YES:
-                return
+        
+        # confirm deletion
+        cfmMsg = "Delete "
+        if len(entryNames) == 1:
+            cfmMsg += entryNames[0]
+        else:
+            cfmMsg += str(len(entryNames)) + ' items'
+
+        cfmMsg += '?'
+        dlg = wx.MessageDialog(None, cfmMsg, 'Confirm',
+                               wx.YES_NO | wx.ICON_QUESTION)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if result != wx.ID_YES:
+            return
+
+        # execute deletion
+        for e in entryNames:
             # if entry is encrypted, request access
-            if not self.verifyPassword(entryName):
-                return
-                
-        self.noteManager.delEntry(entryName)
+            if self.noteManager.isEncrypted(e):
+                if not self.verifyPassword(e):
+                    return
+            self.noteManager.delEntry(e)
+            
         self.showEntries()
 
     def OnSearch(self, event):
@@ -177,7 +222,21 @@ class MainFrame(wx.Frame):
                                '<directory>')
 
             self.previewText.SetValue(value)
-                
+            
+    def OnContextMenu(self, event):
+        pos = event.GetPosition()
+        pos = self.listBox.ScreenToClient(pos)
+        self.listBox.PopupMenu(self.popupMenu, pos)
+
+    def OnPopupItemSelected(self, event):
+        id = event.GetId()
+        if id == wx.ID_CUT:
+            self.cutEntries()
+        elif id == wx.ID_COPY:
+            self.copyEntries()
+        elif id == wx.ID_PASTE:
+            self.pasteEntries()
+            
     def OnExit(self, event):
         self.noteManager.save()
         event.Skip()
