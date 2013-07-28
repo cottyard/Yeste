@@ -1,12 +1,13 @@
 import wx
 import data
 import notepad
+import copy
 
 class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.1.1',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.1',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
 
@@ -142,7 +143,8 @@ class MainFrame(wx.Frame):
                               self.listBox.GetSelections())
         for eName in selectedEntries:
             self.pasteBoard.append(
-                self.noteManager.retrieveEntry(eName))
+                copy.deepcopy(
+                    self.noteManager.retrieveEntry(eName)))
             
         if len(selectedEntries) > 0:
             self.pasteButton.Enable(True)
@@ -189,7 +191,7 @@ class MainFrame(wx.Frame):
             # if entry is encrypted, request access
             if self.noteManager.isEncrypted(e):
                 if not self.verifyPassword(e):
-                    return
+                    break
             self.noteManager.delEntry(e)
             
         self.showEntries()

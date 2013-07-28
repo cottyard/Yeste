@@ -78,14 +78,9 @@ class NoteManager:
             print 'working path: ' + p
             length = os.path.getsize(p)
         except WindowsError:
-            #dlg = MessageDialog(self, "Cannot open data file!")
-            #dlg.ShowModal()
-            #dlg.Destroy()
             f = open("note.dat",'wb')
             f.close()
             length = 0
-            #import sys
-            #sys.exit("data file error")
 
         if length != 0:
             with open("note.dat",'rb') as f:
@@ -93,7 +88,7 @@ class NoteManager:
 
     def save(self):
         with open("note.dat",'wb') as f:
-            pickle.dump(self.rootDir, f)
+            pickle.dump(self.rootDir, f, True)
             
 # Data Classes
 
