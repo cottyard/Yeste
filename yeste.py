@@ -7,25 +7,26 @@ class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.1',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.5',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
 
         # panel
         self.panel = wx.Panel(self)
+        self.edittingNotes = dict() # store opened notepad frames
 
         # tool bar
-        self.newButton = wx.Button(self.panel, label = 'New', \
+        self.newButton = wx.Button(self.panel, label = 'New',
                                    size = (MainFrame.BUTTON_WIDTH,
                                            MainFrame.BUTTON_HEIGHT))
         self.Bind(wx.EVT_BUTTON, self.OnNew, self.newButton)
 
-        self.delButton = wx.Button(self.panel, label = 'Del', \
+        self.delButton = wx.Button(self.panel, label = 'Del',
                                    size = (MainFrame.BUTTON_WIDTH,
                                            MainFrame.BUTTON_HEIGHT))
         self.Bind(wx.EVT_BUTTON, self.OnDel, self.delButton)
         
-        self.levelUpButton = wx.Button(self.panel, label = 'Up', \
+        self.levelUpButton = wx.Button(self.panel, label = 'Up',
                                        size = (MainFrame.BUTTON_WIDTH,
                                                MainFrame.BUTTON_HEIGHT))
         self.Bind(wx.EVT_BUTTON, self.OnLevelUp, self.levelUpButton)
@@ -70,6 +71,7 @@ class MainFrame(wx.Frame):
         # preview text area
         self.previewText = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE |
                                        wx.TE_READONLY | wx.TE_AUTO_URL)
+        self.previewText.Bind(wx.EVT_TEXT_URL, self.OnURL)
 
         # directory indicator
         self.dirIndicator = wx.StaticText(self.panel)
@@ -94,17 +96,21 @@ class MainFrame(wx.Frame):
         print "initialization finished"
 
     # API: called by notepad.py
-    def updateNote(self, name, content):
-        if name == '':
+    def updateNote(self, title, tab, content):
+        if tab == '':
             return
-        if name.lower().startswith('dir:'):
+        if tab.lower().startswith('dir:'):
             if content.strip() == '':
                 content = ''
-            self.noteManager.newDir(name[4:].lstrip(), content)
+            self.noteManager.newDir(tab[4:].lstrip(), content)
         else:
-            self.noteManager.newNote(name, content)
-            
+            self.noteManager.newNote(tab, content)
+
+        self.edittingNotes.pop(title)
         self.showEntries()
+
+    def regEdittingNote(self, title, noteFrame):
+        self.edittingNotes[title] = noteFrame
     # end of API
 
 
@@ -177,7 +183,7 @@ class MainFrame(wx.Frame):
         self.pasteButton.Enable(False)
         self.showEntries()
 
-    def openNote(self, name):
+    def openNote(self, name):        
         notepad.NotePad(parent = self, title = name, tab = name,
                         content = self.noteManager.getNoteContent(name))
         self.noteManager.delEntry(name)
@@ -187,6 +193,7 @@ class MainFrame(wx.Frame):
             if not self.verifyPassword(name):
                 return
         self.noteManager.enterDir(name)
+        
     # end of auxiliary methods
 
     
@@ -287,8 +294,14 @@ class MainFrame(wx.Frame):
             self.copyEntries()
         elif id == wx.ID_PASTE:
             self.pasteEntries()
-            
+
+    def OnURL(self, event):
+        pass
+
     def OnExit(self, event):
+        # store unsaved notes
+        for pad in self.edittingNotes.values():
+            pad.Close()
         self.noteManager.save()
         event.Skip()
     # end of callback methods

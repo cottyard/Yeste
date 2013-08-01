@@ -3,7 +3,7 @@ import wx
 class NotePad(wx.Frame):
     def __init__(self, parent, title, tab = '', content = ''):
         wx.Frame.__init__(self, parent, title = title)
-
+        
         self.panel = wx.Panel(self)
         
         textArea1 = wx.TextCtrl(self.panel)
@@ -19,7 +19,8 @@ class NotePad(wx.Frame):
         self.panel.SetSizer(vbox)
 
         def OnExit(event):
-            parent.updateNote(textArea1.GetValue(), textArea2.GetValue())
+            parent.updateNote(title, textArea1.GetValue(),
+                              textArea2.GetValue())
             event.Skip()
 
         self.Bind(wx.EVT_CLOSE, OnExit)
@@ -31,5 +32,7 @@ class NotePad(wx.Frame):
         
         self.Bind(wx.EVT_CHAR_HOOK, OnEscape)
         self.Show(True)
+
+        parent.regEdittingNote(title, self)
 
         

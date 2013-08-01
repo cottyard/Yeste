@@ -1,4 +1,5 @@
 import pickle
+import base64
 import os
 
 def printTree(node):
@@ -84,11 +85,15 @@ class NoteManager:
 
         if length != 0:
             with open("note.dat",'rb') as f:
-                self.rootDir = pickle.load(f)
+                s = f.read()
+                s = base64.b64decode(s)
+                self.rootDir = pickle.loads(s)
 
     def save(self):
         with open("note.dat",'wb') as f:
-            pickle.dump(self.rootDir, f, True)
+            s = pickle.dumps(self.rootDir)
+            s = base64.b64encode(s)
+            f.write(s)
             
 # Data Classes
 
