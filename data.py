@@ -1,4 +1,5 @@
 import pickle
+import base64
 import os
 
 def printTree(node):
@@ -78,22 +79,21 @@ class NoteManager:
             print 'working path: ' + p
             length = os.path.getsize(p)
         except WindowsError:
-            #dlg = MessageDialog(self, "Cannot open data file!")
-            #dlg.ShowModal()
-            #dlg.Destroy()
             f = open("note.dat",'wb')
             f.close()
             length = 0
-            #import sys
-            #sys.exit("data file error")
 
         if length != 0:
             with open("note.dat",'rb') as f:
-                self.rootDir = pickle.load(f)
+                s = f.read()
+                s = base64.b64decode(s)
+                self.rootDir = pickle.loads(s)
 
     def save(self):
         with open("note.dat",'wb') as f:
-            pickle.dump(self.rootDir, f)
+            s = pickle.dumps(self.rootDir)
+            s = base64.b64encode(s)
+            f.write(s)
             
 # Data Classes
 
