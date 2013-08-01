@@ -6,7 +6,7 @@ class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.1.1',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.2',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
 
