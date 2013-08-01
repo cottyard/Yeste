@@ -2,13 +2,14 @@ import wx
 import data
 import notepad
 import copy
+import types
 
 class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
 
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.5',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.6',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
 
@@ -102,16 +103,25 @@ class MainFrame(wx.Frame):
     def updateNote(self, title, tab, content):
         if tab == '':
             return
-        if tab.lower().startswith('dir:'):
+        if tab.lower().endswith(':dir'):
             if content.strip() == '':
                 content = ''
-            self.noteManager.newDir(tab[4:].lstrip(), content)
+            tab = tab[:-4].rstrip()
+            self.noteManager.newDir(tab, content)
         else:
             self.noteManager.newNote(tab, content)
 
         self.edittingNotes.pop(title)
         self.showEntries()
 
+        class TempClass:
+            pass
+        event = TempClass()
+        def GetString(self):
+            return tab
+        event.GetString = types.MethodType(GetString, event)
+        self.OnSelect(event)
+        
     def regEdittingNote(self, title, noteFrame):
         self.edittingNotes[title] = noteFrame
     # end of API
@@ -174,7 +184,7 @@ class MainFrame(wx.Frame):
                 self.pasteBoard.append(
                     copy.deepcopy(
                         self.noteManager.retrieveEntry(eName)))
-            afterFunc(eName)
+                afterFunc(eName)
             
         if items > 0:
             self.pasteButton.Enable(True)
@@ -264,7 +274,7 @@ class MainFrame(wx.Frame):
                 self.openDir(dirName)
 
             self.showEntries()
-            event.Skip()
+        event.Skip()
 
             
     def OnLevelUp(self, event):
