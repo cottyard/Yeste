@@ -8,7 +8,8 @@ class NotePad(wx.Frame):
         
         textArea1 = wx.TextCtrl(self.panel)
         textArea1.SetValue(tab)
-        textArea2 = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE | wx.TE_PROCESS_TAB)
+        textArea2 = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE |
+                                                    wx.TE_PROCESS_TAB)
         textArea2.SetValue(content)
 
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -20,9 +21,15 @@ class NotePad(wx.Frame):
         def OnExit(event):
             parent.updateNote(textArea1.GetValue(), textArea2.GetValue())
             event.Skip()
-            
+
         self.Bind(wx.EVT_CLOSE, OnExit)
-                
+
+        def OnEscape(event):
+            if event.GetKeyCode() == wx.WXK_ESCAPE:
+                self.Close()
+            event.Skip()
+        
+        self.Bind(wx.EVT_CHAR_HOOK, OnEscape)
         self.Show(True)
 
         
