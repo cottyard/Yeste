@@ -3,6 +3,7 @@ import data
 import notepad
 import copy
 import types
+import webbrowser
 
 class MainFrame(wx.Frame):
     BUTTON_WIDTH = 30
@@ -15,7 +16,7 @@ class MainFrame(wx.Frame):
 
         # panel
         self.panel = wx.Panel(self)
-        self.edittingNotes = dict() # store opened notepad frames
+        self.edittingNotes = set() # store opened notepad frames
 
         # tool bar
         self.newButton = wx.Button(self.panel, label = 'New',
@@ -76,7 +77,9 @@ class MainFrame(wx.Frame):
         self.previewText = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE |
                                        wx.TE_READONLY | wx.TE_AUTO_URL)
         self.previewText.Bind(wx.EVT_TEXT_URL, self.OnURL)
-
+        def OnGetFocus(e):
+            self.previewText.Navigate(flags = wx.NavigationKeyEvent.IsBackward)
+        self.previewText.Bind(wx.EVT_SET_FOCUS, OnGetFocus)
         # directory indicator
         self.dirIndicator = wx.StaticText(self.panel)
 
@@ -100,7 +103,7 @@ class MainFrame(wx.Frame):
         print "initialization finished"
 
     # API: called by notepad.py
-    def updateNote(self, title, tab, content):
+    def updateNote(self, noteFrame, tab, content):
         if tab == '':
             return
         if tab.lower().endswith(':dir'):
@@ -111,7 +114,7 @@ class MainFrame(wx.Frame):
         else:
             self.noteManager.newNote(tab, content)
 
-        self.edittingNotes.pop(title)
+        self.edittingNotes.remove(noteFrame)
         self.showEntries()
 
         class TempClass:
@@ -122,8 +125,8 @@ class MainFrame(wx.Frame):
         event.GetString = types.MethodType(GetString, event)
         self.OnSelect(event)
         
-    def regEdittingNote(self, title, noteFrame):
-        self.edittingNotes[title] = noteFrame
+    def regEdittingNote(self, noteFrame):
+        self.edittingNotes.add(noteFrame)
     # end of API
 
 
@@ -211,10 +214,10 @@ class MainFrame(wx.Frame):
 
     
     # callback methods
-    def OnNew(self, event):
+    def OnNew(self, event = None):
         notepad.NotePad(parent = self, title = 'New Note')
 
-    def OnDel(self, event):
+    def OnDel(self, event = None):
         entryNames = map(self.listBox.GetString,
                         self.listBox.GetSelections())
         if entryNames == []:
@@ -246,7 +249,7 @@ class MainFrame(wx.Frame):
             
         self.showEntries()
 
-    def OnSearch(self, event):
+    def OnSearch(self, event = None):
         search = self.searchBox.GetValue()
         self.showEntries(search)
 
@@ -274,10 +277,14 @@ class MainFrame(wx.Frame):
                 self.openDir(dirName)
 
             self.showEntries()
+            
+        elif event.GetKeyCode() == wx.WXK_DELETE:
+            self.OnDel()
+            
         event.Skip()
 
             
-    def OnLevelUp(self, event):
+    def OnLevelUp(self, event = None):
         self.noteManager.exitDir()
         self.showEntries()
         
@@ -310,11 +317,11 @@ class MainFrame(wx.Frame):
             self.pasteEntries()
 
     def OnURL(self, event):
-        pass
+        webbrowser.get('windows-default').open(event.GetString())
 
-    def OnExit(self, event):
+    def OnExit(self, event = None):
         # store unsaved notes
-        for pad in self.edittingNotes.values():
+        for pad in self.edittingNotes.copy():
             pad.Close()
         self.noteManager.save()
         event.Skip()

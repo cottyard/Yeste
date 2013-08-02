@@ -19,7 +19,7 @@ class NotePad(wx.Frame):
         self.panel.SetSizer(vbox)
 
         def OnExit(event):
-            parent.updateNote(title, textArea1.GetValue(),
+            parent.updateNote(self, textArea1.GetValue(),
                               textArea2.GetValue())
             event.Skip()
 
@@ -33,6 +33,6 @@ class NotePad(wx.Frame):
         self.Bind(wx.EVT_CHAR_HOOK, OnEscape)
         self.Show(True)
 
-        parent.regEdittingNote(title, self)
+        parent.regEdittingNote(self)
 
         
