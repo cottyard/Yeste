@@ -1,4 +1,4 @@
-Manual of Yeste 1.2.6
+Manual of Yeste 1.2.7
 =====================
 
 Yeste is an easy-to-use, in-progress wxPython notebook application.
@@ -14,8 +14,11 @@ the less-obvious features here:
   
 - Editting
 
-  Click on a note to select it, and double click to edit. Press Esc to
-  exit editting and save the note. Use Shift or Ctrl for multiple selection.
-  Press Enter to edit more than entries at one time. Right click on the list
-  to open up the  Cut-Copy-Paste menu. You can first Cut/Copy selected items,
-  and later Paste them in other directories.
+  - Click to select
+  - Double click to edit
+  - Press Del to delete
+  - Press Esc to exit editting and save
+  - Shift/Ctrl for multiple selection
+  - Press Enter to edit more than entries at one time
+  - Right click to open up the Cut-Copy-Paste menu
+  - Click on URLs to navigate in a browser

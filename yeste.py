@@ -317,7 +317,8 @@ class MainFrame(wx.Frame):
             self.pasteEntries()
 
     def OnURL(self, event):
-        webbrowser.get('windows-default').open(event.GetString())
+        webbrowser.open(self.previewText.GetRange(
+            event.GetURLStart(), event.GetURLEnd()))
 
     def OnExit(self, event = None):
         # store unsaved notes
