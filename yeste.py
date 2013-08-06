@@ -10,7 +10,7 @@ class MainFrame(wx.Frame):
     BUTTON_HEIGHT = 20
     def __init__(self, parent, id):
 
-        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.6',
+        wx.Frame.__init__(self, parent, id, 'Yeste 1.2.8',
                           style = wx.DEFAULT_FRAME_STYLE)
         # GUI
 
@@ -49,9 +49,12 @@ class MainFrame(wx.Frame):
                       (self.searchBox, 0, wx.EXPAND)])
         hbox.AddGrowableCol(5,1)
         # end of tool bar
-
+        
+        # splitter window
+        splitter = wx.SplitterWindow(self.panel, style = wx.SP_3DSASH)
+        
         # list
-        self.listBox = wx.ListBox(self.panel, style = wx.LB_EXTENDED)
+        self.listBox = wx.ListBox(splitter, style = wx.LB_EXTENDED)
         self.listBox.Bind(wx.EVT_LISTBOX_DCLICK, self.OnOpen)
         self.listBox.Bind(wx.EVT_LISTBOX, self.OnSelect)
 
@@ -74,19 +77,26 @@ class MainFrame(wx.Frame):
         # end of list
 
         # preview text area
-        self.previewText = wx.TextCtrl(self.panel, style = wx.TE_MULTILINE |
+        self.previewText = wx.TextCtrl(splitter, style = wx.TE_MULTILINE |
                                        wx.TE_READONLY | wx.TE_AUTO_URL)
         self.previewText.Bind(wx.EVT_TEXT_URL, self.OnURL)
         def OnGetFocus(e):
             self.previewText.Navigate(flags = wx.NavigationKeyEvent.IsBackward)
         self.previewText.Bind(wx.EVT_SET_FOCUS, OnGetFocus)
+        # end of preview text area
+
+        splitter.SplitHorizontally(self.listBox, self.previewText)
+        splitter.SetSashGravity(0.5)
+        # end of splitter window
+        
         # directory indicator
         self.dirIndicator = wx.StaticText(self.panel)
 
+
+        # vertical sizer
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(hbox, flag = wx.EXPAND)
-        vbox.Add(self.listBox, proportion = 2, flag = wx.EXPAND)
-        vbox.Add(self.previewText, proportion = 1, flag = wx.EXPAND)
+        vbox.Add(splitter, proportion = 1, flag = wx.EXPAND)
         vbox.Add(self.dirIndicator, flag = wx.EXPAND)
         
         self.panel.SetSizer(vbox)
@@ -104,6 +114,7 @@ class MainFrame(wx.Frame):
 
     # API: called by notepad.py
     def updateNote(self, noteFrame, tab, content):
+        self.edittingNotes.remove(noteFrame)
         if tab == '':
             return
         if tab.lower().endswith(':dir'):
@@ -114,7 +125,6 @@ class MainFrame(wx.Frame):
         else:
             self.noteManager.newNote(tab, content)
 
-        self.edittingNotes.remove(noteFrame)
         self.showEntries()
 
         class TempClass:
@@ -124,7 +134,7 @@ class MainFrame(wx.Frame):
             return tab
         event.GetString = types.MethodType(GetString, event)
         self.OnSelect(event)
-        
+
     def regEdittingNote(self, noteFrame):
         self.edittingNotes.add(noteFrame)
     # end of API

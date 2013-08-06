@@ -1,4 +1,4 @@
-Manual of Yeste 1.2.7
+Manual of Yeste 1.2.8
 =====================
 
 Yeste is an easy-to-use, in-progress wxPython notebook application.
